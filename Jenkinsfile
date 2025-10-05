@@ -19,7 +19,11 @@ pipeline {
         stage('Terraform Init') {
             steps {
                 sh '''
-                docker run --rm -v /home/suchi/jenkins-terraform-pipeline:/workspace -w /workspace hashicorp/terraform:light init
+                docker run --rm \
+                  -v $WORKSPACE:/workspace \
+                  -v /home/suchi/.aws:/root/.aws:ro \
+                  -w /workspace \
+                  hashicorp/terraform:light init
                 '''
             }
         }
@@ -27,7 +31,11 @@ pipeline {
         stage('Terraform Plan') {
             steps {
                 sh '''
-                docker run --rm -v /home/suchi/jenkins-terraform-pipeline:/workspace -w /workspace hashicorp/terraform:light plan
+                docker run --rm \
+                  -v $WORKSPACE:/workspace \
+                  -v /home/suchi/.aws:/root/.aws:ro \
+                  -w /workspace \
+                  hashicorp/terraform:light plan
                 '''
             }
         }
@@ -35,15 +43,22 @@ pipeline {
         stage('Terraform Apply') {
             steps {
                 sh '''
-                docker run --rm -v /home/suchi/jenkins-terraform-pipeline:/workspace -w /workspace hashicorp/terraform:light apply -auto-approve
+                docker run --rm \
+                  -v $WORKSPACE:/workspace \
+                  -v /home/suchi/.aws:/root/.aws:ro \
+                  -w /workspace \
+                  hashicorp/terraform:light apply -auto-approve
                 '''
             }
         }
+    }
 
-        stage('Slack Notification') {
-            steps {
-                slackSend(channel: '#devops', message: "Terraform apply completed successfully!")
-            }
+    post {
+        success {
+            slackSend(channel: '#devops', message: "Terraform apply completed successfully!")
+        }
+        failure {
+            slackSend(channel: '#devops', message: "Terraform pipeline failed. Check Jenkins for details.")
         }
     }
 }
