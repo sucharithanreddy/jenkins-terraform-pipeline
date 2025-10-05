@@ -1,42 +1,49 @@
-pipeline {
-  agent any
-  environment {
-    TERRAFORM_IMAGE = 'hashicorp/terraform:light'
-    TERRAFORM_DIR = '/app'
-  }
-  stages {
-    stage('Checkout') {
-      steps {
-        checkout scm
-        sh "docker pull ${TERRAFORM_IMAGE}"
-      }
-    }
+pipeline {   
+    agent any
 
-    stage('Verify Docker') {
-      steps {
-        sh 'which docker'
-        sh 'docker ps || true'
-      }
-    }
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                sh 'docker pull hashicorp/terraform:light'
+            }
+        }
 
-    stage('Terraform') {
-      steps {
-        // Run all Terraform commands in a single container
-        sh """
-        docker run -w ${TERRAFORM_DIR} -v /root/.aws:/root/.aws -v $WORKSPACE:${TERRAFORM_DIR} ${TERRAFORM_IMAGE} \
-        sh -c "
-          terraform init &&
-          terraform plan &&
-          terraform apply -auto-approve
-        "
-        """
-      }
-    }
+        stage('Verify Docker') {
+            steps {
+                sh 'which docker'
+                sh 'docker ps || true'  // won't fail if no containers are running
+            }
+        }
 
-    stage('Slack Notification') {
-      steps {
-        slackSend(channel: '#devops', message: "Terraform apply completed successfully!")
-      }
+        stage('Init') {
+            steps {
+                sh """
+                docker run -w /app -v /root/.aws:/root/.aws -v $WORKSPACE:/app hashicorp/terraform:light init
+                """
+            }
+        }
+
+        stage('Plan') {
+            steps {
+                sh """
+                docker run -w /app -v /root/.aws:/root/.aws -v $WORKSPACE:/app hashicorp/terraform:light plan
+                """
+            }
+        }
+
+        stage('Apply') {
+            steps {
+                sh """
+                docker run -w /app -v /root/.aws:/root/.aws -v $WORKSPACE:/app hashicorp/terraform:light apply -auto-approve
+                """
+            }
+        }
+
+        stage('Slack Notification') {
+            steps {
+                slackSend(channel: '#devops', message: "Terraform apply completed successfully!")
+            }
+        }
     }
-  }
 }
