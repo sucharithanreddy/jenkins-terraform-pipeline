@@ -1,6 +1,5 @@
-pipeline {   
+pipeline {
     agent any
-
     stages {
         stage('Checkout') {
             steps {
@@ -9,34 +8,13 @@ pipeline {
             }
         }
 
-        stage('Verify Docker') {
+        stage('Terraform') {
             steps {
-                sh 'which docker'
-                sh 'docker ps || true'  // won't fail if no containers are running
-            }
-        }
-
-        stage('Init') {
-            steps {
-                sh """
-                docker run -w /app -v /root/.aws:/root/.aws -v $WORKSPACE:/app hashicorp/terraform:light init
-                """
-            }
-        }
-
-        stage('Plan') {
-            steps {
-                sh """
-                docker run -w /app -v /root/.aws:/root/.aws -v $WORKSPACE:/app hashicorp/terraform:light plan
-                """
-            }
-        }
-
-        stage('Apply') {
-            steps {
-                sh """
-                docker run -w /app -v /root/.aws:/root/.aws -v $WORKSPACE:/app hashicorp/terraform:light apply -auto-approve
-                """
+                sh '''
+                docker run --rm -v $WORKSPACE:/workspace -w /workspace hashicorp/terraform:light init
+                docker run --rm -v $WORKSPACE:/workspace -w /workspace hashicorp/terraform:light plan
+                docker run --rm -v $WORKSPACE:/workspace -w /workspace hashicorp/terraform:light apply -auto-approve
+                '''
             }
         }
 
