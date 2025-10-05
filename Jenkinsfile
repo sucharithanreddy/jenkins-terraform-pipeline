@@ -2,10 +2,18 @@ pipeline {
     agent any
 
     stages {
-        stage('Checkout') {
+     stage('Checkout') {
             steps {
                 checkout scm
                 sh 'docker pull hashicorp/terraform:light'
+            }
+        }
+
+        stage('Debug Workspace') {
+            steps {
+                echo "Listing workspace files..."
+                sh 'ls -l $WORKSPACE'
+                sh 'ls -l $WORKSPACE/*.tf'
             }
         }
 
@@ -27,7 +35,6 @@ pipeline {
                 '''
             }
         }
-
         stage('Terraform Plan') {
             steps {
                 sh '''
