@@ -7,6 +7,12 @@ pipeline {
         sh 'docker pull hashicorp/terraform:light'
       }
     }
+    stage('Verify Docker') {
+       steps {
+         sh 'which docker'
+         sh 'docker ps'
+       }
+    }
     stage('Init') {
       steps {
         sh 'docker run -w /app -v /root/.aws:/root/.aws -v `pwd`:/app hashicorp/terraform:light init'
